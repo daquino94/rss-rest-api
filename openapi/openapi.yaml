@@ -1,0 +1,531 @@
+openapi: 3.0.0
+info:
+  title: RSS Feed REST API
+  description: |
+    A RESTful API for managing RSS feeds with support for JSON and XML formats.
+    This API allows creating, retrieving, and filtering RSS feeds with support for images.
+  version: 1.0.0
+  contact:
+    email: support@example.com
+servers:
+  - url: http://localhost:5000
+    description: Local development server
+  - url: https://api.example.com
+    description: Production server
+
+tags:
+  - name: feeds
+    description: Feed management operations
+  - name: entries
+    description: Operations for feed entries
+  - name: search
+    description: Search and filter operations
+  - name: status
+    description: Service status information
+
+paths:
+  /feeds:
+    get:
+      summary: Get all feeds
+      description: Returns all RSS feeds in JSON format
+      tags:
+        - feeds
+      responses:
+        '200':
+          description: A list of all feeds
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    description: Number of feeds
+                    example: 2
+                  feeds: 
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Feed'
+    post:
+      summary: Create a new feed
+      description: Creates a new RSS feed with optional initial entries
+      tags:
+        - feeds
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedCreationRequest'
+      responses:
+        '201':
+          description: Feed created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Feed created successfully
+                  feedId:
+                    type: string
+                    example: 550e8400-e29b-41d4-a716-446655440000
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /feeds/{feedId}:
+    get:
+      summary: Get a specific feed
+      description: Returns a specific feed in JSON format
+      tags:
+        - feeds
+      parameters:
+        - name: feedId
+          in: path
+          required: true
+          description: ID of the feed to retrieve
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Feed retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feed'
+        '404':
+          description: Feed not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete a feed
+      description: Deletes a specific feed
+      tags:
+        - feeds
+      parameters:
+        - name: feedId
+          in: path
+          required: true
+          description: ID of the feed to delete
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Feed deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Feed deleted successfully
+        '404':
+          description: Feed not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /feeds/{feedId}/xml:
+    get:
+      summary: Get a specific feed in XML format
+      description: Returns a specific feed in RSS XML format
+      tags:
+        - feeds
+      parameters:
+        - name: feedId
+          in: path
+          required: true
+          description: ID of the feed to retrieve
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Feed retrieved successfully
+          content:
+            application/xml:
+              schema:
+                type: string
+                format: binary
+              example: |
+                <?xml version="1.0" encoding="UTF-8"?>
+                <rss version="2.0">
+                  <channel>
+                    <title>Example Feed</title>
+                    <link>https://example.com</link>
+                    <description>Example Feed Description</description>
+                    <language>en-US</language>
+                    <item>
+                      <title>Example Entry</title>
+                      <link>https://example.com/entry</link>
+                      <description>Example Entry Description</description>
+                      <pubDate>Mon, 13 May 2025 10:00:00 GMT</pubDate>
+                      <guid isPermaLink="false">550e8400-e29b-41d4-a716-446655440000</guid>
+                    </item>
+                  </channel>
+                </rss>
+        '404':
+          description: Feed not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /feeds/xml:
+    get:
+      summary: Get all feeds in XML format
+      description: Returns all feeds combined into a single RSS XML document
+      tags:
+        - feeds
+      responses:
+        '200':
+          description: All feeds retrieved successfully
+          content:
+            application/xml:
+              schema:
+                type: string
+                format: binary
+
+  /feeds/{feedId}/entries:
+    post:
+      summary: Add an entry to a feed
+      description: Adds a new entry to a specific feed
+      tags:
+        - entries
+      parameters:
+        - name: feedId
+          in: path
+          required: true
+          description: ID of the feed to add the entry to
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedEntryCreationRequest'
+      responses:
+        '200':
+          description: Entry added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Entry added successfully
+                  entryId:
+                    type: string
+                    example: 550e8400-e29b-41d4-a716-446655440000
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Feed not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /feeds/search:
+    get:
+      summary: Search and filter feeds
+      description: Search and filter feeds based on various criteria
+      tags:
+        - search
+      parameters:
+        - name: title
+          in: query
+          description: Filter by title (case-insensitive substring match)
+          schema:
+            type: string
+        - name: description
+          in: query
+          description: Filter by description (case-insensitive substring match)
+          schema:
+            type: string
+        - name: from_date
+          in: query
+          description: Minimum date in ISO format (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: to_date
+          in: query
+          description: Maximum date in ISO format (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: limit
+          in: query
+          description: Maximum number of entries to return per feed
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - name: format
+          in: query
+          description: Output format (json or xml)
+          schema:
+            type: string
+            enum: [json, xml]
+            default: json
+        - name: include_empty
+          in: query
+          description: Include feeds with no entries in results
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    description: Number of feeds in results
+                    example: 1
+                  query:
+                    type: object
+                    description: The query parameters used for filtering
+                  feeds:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Feed'
+            application/xml:
+              schema:
+                type: string
+                format: binary
+              description: RSS XML format when format=xml is specified
+
+  /status:
+    get:
+      summary: Get service status
+      description: Returns the current status of the service
+      tags:
+        - status
+      responses:
+        '200':
+          description: Service status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: online
+                  feeds_count:
+                    type: integer
+                    description: Number of feeds in the system
+                    example: 5
+                  history_days:
+                    type: integer
+                    description: Number of days entries are kept in history
+                    example: 30
+                  max_entries_per_feed:
+                    type: integer
+                    description: Maximum number of entries allowed per feed
+                    example: 100
+                  storage_file:
+                    type: string
+                    description: Path to the storage file
+                    example: /data/feeds.json
+
+components:
+  schemas:
+    Feed:
+      type: object
+      properties:
+        feedId:
+          type: string
+          format: uuid
+          description: Unique identifier for the feed
+          example: 550e8400-e29b-41d4-a716-446655440000
+        title:
+          type: string
+          description: Feed title
+          example: Tech Blog
+        link:
+          type: string
+          format: uri
+          description: Feed link
+          example: https://techblog.example.com
+        description:
+          type: string
+          description: Feed description
+          example: Latest tech news and updates
+        language:
+          type: string
+          description: Feed language code
+          example: en-US
+        imageUrl:
+          type: string
+          format: uri
+          description: URL of the feed image
+          example: https://techblog.example.com/logo.jpg
+          nullable: true
+        entries:
+          type: array
+          description: Feed entries
+          items:
+            $ref: '#/components/schemas/FeedEntry'
+      required:
+        - feedId
+        - title
+        - link
+        - description
+        - language
+        - entries
+
+    FeedEntry:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Entry title
+          example: Artificial Intelligence in 2025
+        link:
+          type: string
+          format: uri
+          description: Entry link
+          example: https://techblog.example.com/ai-2025
+        description:
+          type: string
+          description: Entry description
+          example: How AI is changing the world
+        pubDate:
+          type: string
+          description: Publication date in RFC822 format
+          example: Mon, 13 May 2025 10:00:00 GMT
+        guid:
+          type: string
+          description: Globally unique identifier for the entry
+          example: 550e8400-e29b-41d4-a716-446655440000
+        imageUrl:
+          type: string
+          format: uri
+          description: URL of the entry image
+          example: https://techblog.example.com/images/ai.jpg
+          nullable: true
+      required:
+        - title
+        - link
+        - description
+        - pubDate
+        - guid
+
+    FeedCreationRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Feed title
+          example: Tech Blog
+        link:
+          type: string
+          format: uri
+          description: Feed link
+          example: https://techblog.example.com
+        description:
+          type: string
+          description: Feed description
+          example: Latest tech news and updates
+        language:
+          type: string
+          description: Feed language code
+          example: en-US
+          default: en-US
+        imageUrl:
+          type: string
+          format: uri
+          description: URL of the feed image
+          example: https://techblog.example.com/logo.jpg
+          nullable: true
+        entries:
+          type: array
+          description: Initial feed entries
+          items:
+            $ref: '#/components/schemas/FeedEntryCreationRequest'
+      required:
+        - title
+        - link
+        - description
+
+    FeedEntryCreationRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Entry title
+          example: Artificial Intelligence in 2025
+        link:
+          type: string
+          format: uri
+          description: Entry link
+          example: https://techblog.example.com/ai-2025
+        description:
+          type: string
+          description: Entry description
+          example: How AI is changing the world
+        pubDate:
+          type: string
+          description: Publication date in RFC822 format
+          example: Mon, 13 May 2025 10:00:00 GMT
+        guid:
+          type: string
+          description: Globally unique identifier for the entry (optional, will be generated if not provided)
+          example: 550e8400-e29b-41d4-a716-446655440000
+        imageUrl:
+          type: string
+          format: uri
+          description: URL of the entry image
+          example: https://techblog.example.com/images/ai.jpg
+          nullable: true
+      required:
+        - title
+        - link
+        - description
+        - pubDate
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: Invalid request data
+      required:
+        - error

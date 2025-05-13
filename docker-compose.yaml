@@ -1,0 +1,21 @@
+version: '3'
+
+services:
+  rss-api:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - RSS_STORAGE_FILE=/data/feeds.json
+      - HISTORY_DAYS=30
+      - GENERAL_FEED_TITLE="All Feeds"
+      - MAX_ENTRIES_PER_FEED=100
+      - DEBUG=False
+    volumes:
+      - ./data:/data
+      - ./static/openapi.yaml:/static/openapi.yaml
+    restart: unless-stopped
+
+volumes:
+  rss-data:
+    driver: local
